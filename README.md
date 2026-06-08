@@ -95,6 +95,13 @@ reflejarse en ambos repos**:
   panel solo la **lee** (pestaña "Actividad de usuarios" en Logs y en el detalle
   de usuario). Para poblarla, la app debe llamar a `POST /api/events`
   (autenticado) con los eventos importantes — pendiente de cablear en `app/`.
+- `api/` posee `daily_metrics` (snapshots diarios `day · metric · value`) →
+  `api/migrations/20260608150000_add_daily_metrics.sql`. Un cron diario en `api/`
+  (`0 0 * * *`, `services/daily-metrics.ts`) calcula `active_users` =
+  `COUNT(DISTINCT user_id)` sobre `user_events` y lo congela (DAU). El panel solo
+  lo **lee** (gráfica "Usuarios activos" del dashboard) y sobrescribe el día de
+  hoy en vivo. El espejo de solo-lectura para la D1 local del panel está en
+  `migrations/20260608150100_add_daily_metrics.sql` (sin backfill).
 
 Ambos `wrangler.toml` apuntan a `patica-db` y wrangler trackea las migraciones por
 nombre de archivo (timestamps únicos), así que cada repo aplica solo lo suyo.

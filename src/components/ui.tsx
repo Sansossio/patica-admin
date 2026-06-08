@@ -5,6 +5,9 @@ import { cn } from "@/lib/cn";
 
 export { cn };
 export { buttonClass, BUTTON_VARIANTS, type ButtonVariant } from "@/lib/button";
+// Interactive (client) search box — re-exported here so pages keep importing
+// it from "@/components/ui".
+export { SearchInput } from "./SearchInput";
 
 // ── Layout primitives ────────────────────────────────────────────────────────
 
@@ -181,36 +184,6 @@ export function Tr({ children, className }: { children: ReactNode; className?: s
 
 export function Td({ children, className }: { children?: ReactNode; className?: string }) {
   return <td className={cn("px-4 py-3 align-middle", className)}>{children}</td>;
-}
-
-// ── Search (GET form) ─────────────────────────────────────────────────────────
-
-export function SearchInput({
-  action,
-  defaultValue,
-  placeholder = "Buscar…",
-}: {
-  action: string;
-  defaultValue?: string;
-  placeholder?: string;
-}) {
-  return (
-    <form action={action} className="relative w-full max-w-xs">
-      <input
-        type="search"
-        name="q"
-        defaultValue={defaultValue}
-        placeholder={placeholder}
-        className="w-full rounded-(--radius-button) border border-border bg-surface px-4 py-2 pl-9 text-sm text-text placeholder:text-subtle outline-none focus:border-primary/60"
-      />
-      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-subtle">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" strokeLinecap="round" />
-        </svg>
-      </span>
-    </form>
-  );
 }
 
 // ── Pagination ─────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { banUser, unbanUser } from "@/actions/users";
 import { SubmitButton } from "./SubmitButton";
+import { ConfirmButton } from "./ConfirmButton";
 import { IconBan, IconCheck } from "./icons";
 import { buttonClass } from "@/lib/button";
 
@@ -17,12 +18,16 @@ export function UserBanControls({
 
   if (banned) {
     return (
-      <form action={unbanUser}>
-        <input type="hidden" name="userId" value={userId} />
-        <SubmitButton variant="success" confirm="¿Levantar el baneo de esta cuenta?">
-          <IconCheck className="h-4 w-4" /> Desbanear
-        </SubmitButton>
-      </form>
+      <ConfirmButton
+        action={unbanUser}
+        fields={{ userId }}
+        variant="success"
+        title="Levantar baneo"
+        message="¿Levantar el baneo de esta cuenta? El usuario recuperará el acceso de inmediato."
+        confirmLabel="Desbanear"
+      >
+        <IconCheck className="h-4 w-4" /> Desbanear
+      </ConfirmButton>
     );
   }
 

@@ -25,10 +25,21 @@ export const ADMIN_ACTION_LABELS: Record<string, string> = {
   "report.reopen": "Reporte reabierto",
   "dog.deactivate": "Perro desactivado",
   "dog.activate": "Perro reactivado",
+  "admin.create": "Admin creado",
+  "admin.remove": "Admin eliminado",
 };
 
 export function adminActionLabel(action: string): string {
   return ADMIN_ACTION_LABELS[action] ?? action;
+}
+
+export const ADMIN_ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  superadmin: "Superadmin",
+};
+
+export function adminRoleLabel(role: string): string {
+  return ADMIN_ROLE_LABELS[role] ?? role;
 }
 
 export const DOG_SEX_LABELS: Record<string, string> = {

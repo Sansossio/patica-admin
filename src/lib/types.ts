@@ -154,3 +154,12 @@ export type StatsRow = {
   total_dog_likes: number;
   updated_at: string;
 };
+
+// Pre-aggregated daily metric snapshots. Written by the api/ cron
+// (services/daily-metrics.ts); the panel only reads them. api/ owns this table.
+export type DailyMetricRow = {
+  day: string; // 'YYYY-MM-DD' (UTC)
+  metric: string; // e.g. 'active_users'
+  value: number;
+  updated_at: string;
+};

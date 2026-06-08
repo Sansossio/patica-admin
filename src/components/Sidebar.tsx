@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType, SVGProps } from "react";
 import { cn } from "@/lib/cn";
+import type { AdminRole } from "@/lib/types";
 import {
   IconDashboard,
   IconUsers,
@@ -11,6 +12,7 @@ import {
   IconChat,
   IconPaw,
   IconList,
+  IconShield,
 } from "./icons";
 
 type NavItem = {
@@ -29,8 +31,12 @@ const NAV: NavItem[] = [
   { href: "/logs", label: "Logs", Icon: IconList },
 ];
 
-export function Sidebar() {
+// Superadmin-only entry (managing the access allowlist).
+const ADMINS_ITEM: NavItem = { href: "/admins", label: "Administradores", Icon: IconShield };
+
+export function Sidebar({ role }: { role?: AdminRole }) {
   const pathname = usePathname();
+  const items = role === "superadmin" ? [...NAV, ADMINS_ITEM] : NAV;
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-bg-elevated md:flex">
@@ -42,7 +48,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-2">
-        {NAV.map(({ href, label, Icon, exact }) => {
+        {items.map(({ href, label, Icon, exact }) => {
           const active = exact
             ? pathname === href
             : pathname === href || pathname.startsWith(`${href}/`);

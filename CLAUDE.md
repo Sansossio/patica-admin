@@ -38,9 +38,10 @@ mode, naranja de marca `#FF8C42`, tipografía Inter.
   Sidebar/Topbar; componentes interactivos marcados `"use client"`
   (`SubmitButton`, `UserBanControls`). Tokens de tema en `src/app/globals.css`.
 - **Rutas**: `(panel)` (layout con guard) → `/` dashboard, `/users[/[id]]`,
-  `/reports[/[id]]`, `/chats[/[id]]`, `/dogs`, `/logs`. `/login` y `/api/auth/*`
-  públicas. Todas las páginas del panel son `dynamic = "force-dynamic"`
-  (leen D1 por request; nada de SSG).
+  `/reports[/[id]]`, `/chats[/[id]]`, `/dogs`, `/logs`, `/admins`
+  (solo-superadmin: alta/baja de `admin_users`, gateada con `requireSuperAdmin()`).
+  `/login` y `/api/auth/*` públicas. Todas las páginas del panel son
+  `dynamic = "force-dynamic"` (leen D1 por request; nada de SSG).
 - **CDN/imágenes**: la D1 guarda solo R2 keys; mostrar con `cdnUrl()`
   (`src/lib/cdn.ts`) → `https://cdn.patica.app/<key>`. Se usa `<img>` plano
   (`images.unoptimized`), no `next/image`.

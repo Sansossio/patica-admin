@@ -9,13 +9,11 @@ export function SubmitButton({
   children,
   variant = "primary",
   className,
-  confirm,
   pendingLabel = "Procesando…",
 }: {
   children: ReactNode;
   variant?: ButtonVariant;
   className?: string;
-  confirm?: string;
   pendingLabel?: string;
 }) {
   const { pending } = useFormStatus();
@@ -23,13 +21,6 @@ export function SubmitButton({
     <button
       type="submit"
       disabled={pending}
-      onClick={
-        confirm
-          ? (e) => {
-              if (!window.confirm(confirm)) e.preventDefault();
-            }
-          : undefined
-      }
       className={cn(buttonClass(variant), className)}
     >
       {pending ? pendingLabel : children}

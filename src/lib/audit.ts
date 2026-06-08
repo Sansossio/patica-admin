@@ -9,7 +9,9 @@ export type AuditAction =
   | "report.resolve"
   | "report.reopen"
   | "dog.deactivate"
-  | "dog.activate";
+  | "dog.activate"
+  | "admin.create"
+  | "admin.remove";
 
 /** Append a privileged action to admin_audit_log. Never throws into callers. */
 export async function writeAuditLog(entry: {

@@ -71,7 +71,7 @@ export async function countSince(
 export type DayCount = { day: string; count: number };
 
 export async function seriesPerDay(
-  table: "users" | "dogs" | "messages",
+  table: "users" | "dogs" | "messages" | "conversations" | "dog_likes",
   days: number,
 ): Promise<DayCount[]> {
   return queryAll<DayCount>(
@@ -81,6 +81,47 @@ export async function seriesPerDay(
      GROUP BY day ORDER BY day ASC`,
     `-${days} days`,
   );
+}
+
+/**
+ * Daily active users for the trailing window. Reads the frozen snapshots the
+ * api cron writes to `daily_metrics` (metric = 'active_users'), then overrides
+ * today with a live count (the cron only finalizes past days, so today's bar
+ * would otherwise lag a day). The live override is best-effort: `user_events`
+ * may be absent from the panel's local D1, so a failure just leaves the stored
+ * value. Returns a sparse series — densify with `fillSeries`.
+ */
+export async function getDailyActiveUsers(days: number): Promise<DayCount[]> {
+  let rows: DayCount[];
+  try {
+    rows = await queryAll<DayCount>(
+      `SELECT day, value AS count
+       FROM daily_metrics
+       WHERE metric = 'active_users'
+         AND day >= substr(strftime('%Y-%m-%dT%H:%M:%SZ','now', ?), 1, 10)
+       ORDER BY day ASC`,
+      `-${days} days`,
+    );
+  } catch (err) {
+    console.error("admin.dau.read_failed", err);
+    return [];
+  }
+
+  const byDay = new Map(rows.map((r) => [r.day, r.count]));
+  const todayKey = new Date().toISOString().slice(0, 10);
+  try {
+    const liveToday = await scalar(
+      `SELECT COUNT(DISTINCT user_id) FROM user_events WHERE created_at >= ?`,
+      `${todayKey}T00:00:00Z`,
+    );
+    byDay.set(todayKey, liveToday);
+  } catch {
+    // user_events may not exist locally — keep whatever the snapshot had.
+  }
+
+  return [...byDay.entries()]
+    .map(([day, count]) => ({ day, count }))
+    .sort((a, b) => (a.day < b.day ? -1 : 1));
 }
 
 /** Densify a sparse day series into a contiguous trailing window (zero-filled). */

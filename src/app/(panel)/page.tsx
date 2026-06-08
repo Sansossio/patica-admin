@@ -6,11 +6,14 @@ import {
   countSince,
   getTopLikedDogs,
   getOnlineCount,
+  getDailyActiveUsers,
+  type DayCount,
 } from "@/lib/queries/stats";
 import { listReports } from "@/lib/queries/reports";
 import { listAdminAudit } from "@/lib/queries/logs";
 import { StatCard, Card, PageHeader, EmptyState, Avatar } from "@/components/ui";
-import { ActivityChart } from "@/components/ActivityChart";
+import { ActivityChart, type ChartUnit } from "@/components/ActivityChart";
+import { OnlineCount } from "@/components/OnlineCount";
 import { ReasonBadge } from "@/components/badges";
 import { IconHeart, IconFlag } from "@/components/icons";
 import { formatNumber, timeAgo } from "@/lib/format";
@@ -19,39 +22,55 @@ import { adminActionLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [overview, online, signups, msgs, new1, new7, new30, topDogs, pending, audit] =
-    await Promise.all([
-      getOverview(),
-      getOnlineCount(),
-      seriesPerDay("users", 14),
-      seriesPerDay("messages", 14),
-      countSince("users", 1),
-      countSince("users", 7),
-      countSince("users", 30),
-      getTopLikedDogs(5),
-      listReports({ status: "pending", page: 1, pageSize: 5 }),
-      listAdminAudit({ page: 1, pageSize: 6 }),
-    ]);
+  const [
+    overview,
+    online,
+    dau,
+    signups,
+    dogsNew,
+    msgs,
+    convos,
+    likes,
+    new1,
+    new7,
+    new30,
+    topDogs,
+    pending,
+    audit,
+  ] = await Promise.all([
+    getOverview(),
+    getOnlineCount(),
+    getDailyActiveUsers(14),
+    seriesPerDay("users", 14),
+    seriesPerDay("dogs", 14),
+    seriesPerDay("messages", 14),
+    seriesPerDay("conversations", 14),
+    seriesPerDay("dog_likes", 14),
+    countSince("users", 1),
+    countSince("users", 7),
+    countSince("users", 30),
+    getTopLikedDogs(5),
+    listReports({ status: "pending", page: 1, pageSize: 5 }),
+    listAdminAudit({ page: 1, pageSize: 6 }),
+  ]);
 
-  const signupSeries = fillSeries(signups, 14);
-  const messageSeries = fillSeries(msgs, 14);
   const sum = (s: { count: number }[]) => s.reduce((a, b) => a + b.count, 0);
+
+  const charts: { title: string; data: DayCount[]; unit: ChartUnit; avg?: boolean }[] = [
+    { title: "Usuarios activos", data: fillSeries(dau, 14), unit: { one: "usuario activo", many: "usuarios activos" }, avg: true },
+    { title: "Altas de usuarios", data: fillSeries(signups, 14), unit: { one: "usuario", many: "usuarios" } },
+    { title: "Perros nuevos", data: fillSeries(dogsNew, 14), unit: { one: "perro", many: "perros" } },
+    { title: "Mensajes", data: fillSeries(msgs, 14), unit: { one: "mensaje", many: "mensajes" } },
+    { title: "Conversaciones", data: fillSeries(convos, 14), unit: { one: "conversación", many: "conversaciones" } },
+    { title: "Likes", data: fillSeries(likes, 14), unit: { one: "like", many: "likes" } },
+  ];
 
   return (
     <>
       <PageHeader title="Dashboard" subtitle="Resumen general de Patica" />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          label="En línea ahora"
-          value={
-            <span className="inline-flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-success" />
-              {formatNumber(online)}
-            </span>
-          }
-          accent
-        />
+        <StatCard label="En línea ahora" value={<OnlineCount initial={online} />} accent />
         <StatCard
           label="Usuarios"
           value={formatNumber(overview.users)}
@@ -78,21 +97,24 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card className="p-5">
-          <p className="text-sm text-muted">Altas de usuarios · 14 días</p>
-          <p className="mt-1 text-2xl font-bold">{formatNumber(sum(signupSeries))}</p>
-          <div className="mt-3">
-            <ActivityChart data={signupSeries} />
-          </div>
-        </Card>
-        <Card className="p-5">
-          <p className="text-sm text-muted">Mensajes · 14 días</p>
-          <p className="mt-1 text-2xl font-bold">{formatNumber(sum(messageSeries))}</p>
-          <div className="mt-3">
-            <ActivityChart data={messageSeries} />
-          </div>
-        </Card>
+      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {charts.map((c) => {
+          const headline = c.avg ? Math.round(sum(c.data) / c.data.length) : sum(c.data);
+          return (
+            <Card key={c.title} className="p-5">
+              <p className="text-sm text-muted">{c.title} · 14 días</p>
+              <p className="mt-1 text-2xl font-bold">
+                {formatNumber(headline)}
+                {c.avg && (
+                  <span className="ml-1 text-xs font-normal text-subtle">/día prom.</span>
+                )}
+              </p>
+              <div className="mt-3">
+                <ActivityChart data={c.data} unit={c.unit} />
+              </div>
+            </Card>
+          );
+        })}
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">

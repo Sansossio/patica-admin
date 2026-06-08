@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { listDogs, type DogFilter } from "@/lib/queries/dogs";
 import { PageHeader, Card, Pagination, EmptyState, SearchInput, cn } from "@/components/ui";
+import { Skeleton } from "@/components/Skeleton";
 import { RemoteImage } from "@/components/RemoteImage";
 import { DogActiveBadge } from "@/components/badges";
 import { DogActiveToggle } from "@/components/DogActiveToggle";
@@ -28,23 +30,12 @@ export default async function DogsPage({
   const filter = (FILTERS.some((f) => f.key === sp.filter) ? sp.filter : "all") as DogFilter;
   const q = sp.q ?? "";
 
-  const { items, hasNext } = await listDogs({ q, filter, page, pageSize: PAGE_SIZE });
-
-  const buildHref = (p: number) => {
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (filter !== "all") params.set("filter", filter);
-    if (p > 1) params.set("page", String(p));
-    const s = params.toString();
-    return `/dogs${s ? `?${s}` : ""}`;
-  };
-
   return (
     <>
       <PageHeader
         title="Perros"
         subtitle="Moderación de perfiles"
-        actions={<SearchInput action="/dogs" defaultValue={q} placeholder="Perro, dueño o ID" />}
+        actions={<SearchInput placeholder="Perro, dueño o ID" />}
       />
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -65,9 +56,41 @@ export default async function DogsPage({
         ))}
       </div>
 
+      <Suspense key={`${q}|${filter}|${page}`} fallback={<DogsGridSkeleton />}>
+        <DogsContent q={q} filter={filter} page={page} />
+      </Suspense>
+    </>
+  );
+}
+
+async function DogsContent({
+  q,
+  filter,
+  page,
+}: {
+  q: string;
+  filter: DogFilter;
+  page: number;
+}) {
+  const { items, hasNext } = await listDogs({ q, filter, page, pageSize: PAGE_SIZE });
+
+  const buildHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (filter !== "all") params.set("filter", filter);
+    if (p > 1) params.set("page", String(p));
+    const s = params.toString();
+    return `/dogs${s ? `?${s}` : ""}`;
+  };
+
+  return (
+    <>
       {items.length === 0 ? (
         <Card>
-          <EmptyState icon={<IconPaw className="h-8 w-8" />} title="Sin perros" />
+          <EmptyState
+            icon={<IconPaw className="h-8 w-8" />}
+            title={q ? "Sin resultados" : "Sin perros"}
+          />
         </Card>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -122,5 +145,22 @@ export default async function DogsPage({
         </Card>
       </div>
     </>
+  );
+}
+
+function DogsGridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <Card key={i} className="overflow-hidden">
+          <Skeleton className="aspect-square w-full rounded-none" />
+          <div className="space-y-2 p-3">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+            <Skeleton className="h-7 w-full" />
+          </div>
+        </Card>
+      ))}
+    </div>
   );
 }
