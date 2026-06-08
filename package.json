@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Patica admin panel (panel.patica.app) — Next.js on Cloudflare (OpenNext), direct D1/R2 access.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:prod": "REMOTE_DB=1 next dev",
