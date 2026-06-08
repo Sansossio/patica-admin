@@ -58,11 +58,16 @@ export async function getSession(): Promise<AdminSession | null> {
   return verifySessionToken(token);
 }
 
-export function sessionCookieOptions() {
-  const isDev = env().ENVIRONMENT === "development";
+/**
+ * Persistent session cookie options. `secure` is derived from the actual
+ * request protocol (pass `origin.startsWith("https")`) rather than an env var,
+ * so a Secure cookie is never set over plain HTTP (which the browser would
+ * silently drop → "logged out on reload"). maxAge makes it survive reloads.
+ */
+export function sessionCookieOptions(secure: boolean) {
   return {
     httpOnly: true,
-    secure: !isDev,
+    secure,
     sameSite: "lax" as const,
     path: "/",
     maxAge: SESSION_MAX_AGE,
