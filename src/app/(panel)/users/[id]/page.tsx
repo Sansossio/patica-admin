@@ -5,7 +5,7 @@ import { Card, EmptyState, Avatar, Badge } from "@/components/ui";
 import { BanBadge, ReportStatusBadge, ReasonBadge, DogActiveBadge } from "@/components/badges";
 import { UserBanControls } from "@/components/UserBanControls";
 import { RemoteImage } from "@/components/RemoteImage";
-import { IconChevronLeft } from "@/components/icons";
+import { IconChevronLeft, IconChat } from "@/components/icons";
 import { cdnUrl } from "@/lib/cdn";
 import { banInfo } from "@/lib/ban";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
@@ -17,7 +17,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   const detail = await getUserDetail(id);
   if (!detail) notFound();
 
-  const { user, dogs, reportsAgainst, banHistory, events } = detail;
+  const { user, dogs, reportsAgainst, banHistory, conversations, events } = detail;
   const ban = banInfo(user.banned_until);
   const avatarSrc = user.profile_photo_url ? cdnUrl(user.profile_photo_url) : user.photo_url;
   const lastBanReason = banHistory.find((b) => b.action === "ban")?.reason ?? null;
@@ -101,6 +101,43 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               </Card>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Conversations */}
+      <div className="mt-6">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-subtle">
+          Conversaciones
+        </h2>
+        {conversations.length === 0 ? (
+          <Card>
+            <EmptyState title="Sin conversaciones" />
+          </Card>
+        ) : (
+          <Card className="divide-y divide-border/60">
+            {conversations.map((c) => {
+              const mineIsA = c.a_owner_id === user.id;
+              const myDog = mineIsA ? c.a_dog_name : c.b_dog_name;
+              const otherDog = mineIsA ? c.b_dog_name : c.a_dog_name;
+              return (
+                <Link
+                  key={c.id}
+                  href={`/chats/${c.id}`}
+                  prefetch
+                  className="flex items-center gap-3 px-5 py-3 text-sm transition hover:bg-surface-2"
+                >
+                  <IconChat className="h-4 w-4 text-subtle" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {myDog ?? "?"} <span className="text-subtle">↔</span> {otherDog ?? "?"}
+                  </span>
+                  <span className="text-xs text-subtle">{formatNumber(c.message_count)} msj</span>
+                  <span className="hidden text-xs text-subtle sm:inline">
+                    {formatDate(c.last_message_at ?? c.created_at)}
+                  </span>
+                </Link>
+              );
+            })}
+          </Card>
         )}
       </div>
 

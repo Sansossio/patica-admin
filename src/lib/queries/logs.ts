@@ -52,25 +52,35 @@ export async function listUserEvents(opts: {
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const offset = (page - 1) * pageSize;
-  const rows = await queryAll<UserEventView>(
-    `SELECT e.*, u.email AS user_email, u.name AS user_name
-     FROM user_events e
-     LEFT JOIN users u ON u.id = e.user_id
-     ${whereSql}
-     ORDER BY e.created_at DESC
-     LIMIT ? OFFSET ?`,
-    ...params,
-    pageSize + 1,
-    offset,
-  );
-  return { items: rows.slice(0, pageSize), hasNext: rows.length > pageSize };
+  // user_events is owned by the api repo; tolerate it not existing yet.
+  try {
+    const rows = await queryAll<UserEventView>(
+      `SELECT e.*, u.email AS user_email, u.name AS user_name
+       FROM user_events e
+       LEFT JOIN users u ON u.id = e.user_id
+       ${whereSql}
+       ORDER BY e.created_at DESC
+       LIMIT ? OFFSET ?`,
+      ...params,
+      pageSize + 1,
+      offset,
+    );
+    return { items: rows.slice(0, pageSize), hasNext: rows.length > pageSize };
+  } catch (err) {
+    console.error("admin.user_events.list_failed", err);
+    return { items: [], hasNext: false };
+  }
 }
 
 export async function distinctUserEvents(): Promise<string[]> {
-  const rows = await queryAll<{ event: string }>(
-    "SELECT event, COUNT(*) AS c FROM user_events GROUP BY event ORDER BY c DESC LIMIT 40",
-  );
-  return rows.map((r) => r.event);
+  try {
+    const rows = await queryAll<{ event: string }>(
+      "SELECT event, COUNT(*) AS c FROM user_events GROUP BY event ORDER BY c DESC LIMIT 40",
+    );
+    return rows.map((r) => r.event);
+  } catch {
+    return [];
+  }
 }
 
 export type AppAuditView = AuditLogRow & {
