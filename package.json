@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "dev:prod": "REMOTE_DB=1 next dev",
-    "build": "next build",
+    "build": "opennextjs-cloudflare build",
+    "build:next": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
