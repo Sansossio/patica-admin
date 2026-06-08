@@ -49,11 +49,23 @@ export async function listUsers(opts: {
   return { items: rows.slice(0, pageSize), hasNext: rows.length > pageSize };
 }
 
+export type UserConversationItem = {
+  id: string;
+  last_message_at: string | null;
+  created_at: string;
+  a_owner_id: string;
+  b_owner_id: string;
+  a_dog_name: string | null;
+  b_dog_name: string | null;
+  message_count: number;
+};
+
 export type UserDetail = {
   user: UserRow;
   dogs: DogRow[];
   reportsAgainst: (ReportRow & { dog_name: string | null })[];
   banHistory: UserBanRow[];
+  conversations: UserConversationItem[];
   events: UserEventRow[];
   messageCount: number;
   conversationCount: number;
@@ -70,6 +82,7 @@ export async function getUserDetail(id: string): Promise<UserDetail | null> {
     dogs,
     reportsAgainst,
     banHistory,
+    conversations,
     events,
     messageCount,
     conversationCount,
@@ -88,10 +101,25 @@ export async function getUserDetail(id: string): Promise<UserDetail | null> {
       "SELECT * FROM user_bans WHERE user_id = ? ORDER BY created_at DESC",
       id,
     ),
+    queryAll<UserConversationItem>(
+      `SELECT c.id, c.last_message_at, c.created_at,
+         da.owner_id AS a_owner_id, db.owner_id AS b_owner_id,
+         da.name AS a_dog_name, db.name AS b_dog_name,
+         (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id) AS message_count
+       FROM conversations c
+       JOIN dogs da ON da.id = c.dog_a_id
+       JOIN dogs db ON db.id = c.dog_b_id
+       WHERE da.owner_id = ? OR db.owner_id = ?
+       ORDER BY COALESCE(c.last_message_at, c.created_at) DESC
+       LIMIT 50`,
+      id,
+      id,
+    ),
+    // user_events is owned by the api repo; tolerate it not existing yet.
     queryAll<UserEventRow>(
       "SELECT * FROM user_events WHERE user_id = ? ORDER BY created_at DESC LIMIT 25",
       id,
-    ),
+    ).catch(() => [] as UserEventRow[]),
     scalar("SELECT COUNT(*) FROM messages WHERE sender_user_id = ?", id),
     scalar(
       `SELECT COUNT(DISTINCT c.id) FROM conversations c
@@ -109,6 +137,7 @@ export async function getUserDetail(id: string): Promise<UserDetail | null> {
     dogs,
     reportsAgainst,
     banHistory,
+    conversations,
     events,
     messageCount,
     conversationCount,
