@@ -1,0 +1,54 @@
+name = "patica-admin"
+main = ".open-next/worker.js"
+compatibility_date = "2025-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets produced by OpenNext.
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[observability]
+enabled = true
+
+# ── Bindings: the SAME D1 + R2 the API uses ──────────────────────────────────
+# The panel talks to the database directly (it never calls the API, which
+# rejects browser Origins with 403). Any schema change must be mirrored in the
+# api repo. account_id is resolved from the wrangler auth context /
+# CLOUDFLARE_ACCOUNT_ID (same Cloudflare account that owns these resources).
+
+[[d1_databases]]
+binding = "DB"
+database_name = "patica-db"
+database_id = "5bdf7eac-14ef-44f8-b8df-56fe3b217d44"
+migrations_dir = "migrations"
+# `remote = true` only takes effect when remote bindings are enabled
+# (REMOTE_DB=1 → `bun run dev:prod`). Plain `bun run dev` ignores it and uses
+# the local D1. In production the binding is real regardless.
+remote = true
+
+[[r2_buckets]]
+binding = "CDN"
+bucket_name = "patica-cdn"
+# Public downloads bypass the worker and go to https://cdn.patica.app/<key>.
+
+# Online presence: the API writes patica:online:{userId} keys (90s TTL) here.
+# `remote = true` so the online counter reflects production (with dev:prod / in prod).
+[[kv_namespaces]]
+binding = "KV_PATICA_USERS"
+id = "340d8bb558b3435e853f0c31beead768"
+remote = true
+
+[vars]
+ENVIRONMENT = "production"
+
+# ── Custom domain ────────────────────────────────────────────────────────────
+# panel.patica.app is attached to this Worker in the Cloudflare dashboard
+# (Workers & Pages → patica-admin → Settings → Domains & Routes → Custom
+# Domain), matching how patica.app/api.patica.app are wired. Alternatively
+# uncomment to manage it from here:
+# routes = [{ pattern = "panel.patica.app", custom_domain = true }]
+
+# AUTH_SECRET / GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are NOT stored here.
+# Set them with: wrangler secret put AUTH_SECRET   (etc.)
+# Locally they come from .dev.vars.

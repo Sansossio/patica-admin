@@ -1,0 +1,36 @@
+{
+  "name": "patica-admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Patica admin panel (panel.patica.app) — Next.js on Cloudflare (OpenNext), direct D1/R2 access.",
+  "scripts": {
+    "dev": "next dev",
+    "dev:prod": "REMOTE_DB=1 next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
+    "db:migrate:dev": "wrangler d1 migrations apply patica-db --local",
+    "db:migrate": "wrangler d1 migrations apply patica-db --remote"
+  },
+  "dependencies": {
+    "jose": "^5.9.6",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "@opennextjs/cloudflare": "^1.3.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.20.0"
+  }
+}
