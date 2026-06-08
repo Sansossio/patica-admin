@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     });
 
     const res = NextResponse.redirect(`${origin}/`);
-    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
+    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions(origin.startsWith("https://")));
     res.cookies.delete(STATE_COOKIE);
     res.cookies.delete(NONCE_COOKIE);
     return res;

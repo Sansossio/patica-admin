@@ -26,7 +26,8 @@ export async function GET(req: NextRequest) {
   const res = NextResponse.redirect(authUrl);
   const opts = {
     httpOnly: true,
-    secure: e.ENVIRONMENT !== "development",
+    // Match the actual protocol so the cookie isn't dropped over HTTP.
+    secure: origin.startsWith("https://"),
     sameSite: "lax" as const,
     path: "/",
     maxAge: TEN_MINUTES,
