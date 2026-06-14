@@ -127,7 +127,89 @@ export type UserEventRow = {
   platform: string | null;
   app_version: string | null;
   metadata: string;
+  // Captured from the X-Device-Id header for new server-side events; NULL for
+  // older rows and some chat events. Used for the per-device anti-fraud dedup.
+  device_id: string | null;
   created_at: string;
+};
+
+// ── Activity (live aggregation over user_events) ─────────────────────────────
+// These are query view shapes (not physical tables). The "day" is a UTC calendar
+// day 'YYYY-MM-DD' derived with substr(created_at, 1, 10) — see
+// src/lib/queries/activity.ts for the single source of truth on day derivation.
+
+// Level 1: one row per day with activity.
+export type DayActivityRow = {
+  day: string; // 'YYYY-MM-DD' (UTC)
+  active_users: number; // COUNT(DISTINCT user_id)
+  total_activities: number; // COUNT(*)
+};
+
+// A single (event type → count) entry within a user's day.
+export type UserEventTypeCount = {
+  event: string;
+  count: number;
+};
+
+// Level 2: a user active on a given day, with their per-event-type breakdown.
+export type UserDayActivityRow = {
+  user_id: string;
+  user_email: string | null;
+  user_name: string | null;
+  total_activities: number;
+  first_at: string; // ISO-8601 (UTC) — first activity of the day
+  last_at: string; // ISO-8601 (UTC) — last activity of the day
+  byType: UserEventTypeCount[];
+};
+
+// ── Preloaded activity window (passed to the client ActivityExplorer) ─────────
+// The /activity page loads one WINDOW_DAYS-wide UTC window and ships ALL three
+// drilldown levels at once so the modals open with no extra round-trip.
+
+// A single timeline entry (level 3) within a (day, user) bucket.
+export type ActivityTimelineEvent = {
+  id: string;
+  event: string;
+  platform: string | null;
+  app_version: string | null;
+  metadata: string;
+  created_at: string; // ISO-8601 (UTC)
+};
+
+// A user active on a given day, plus their full per-day timeline (level 2 + 3).
+export type ActivityUserDay = UserDayActivityRow & {
+  events: ActivityTimelineEvent[];
+};
+
+// A single UTC day with its active users fully expanded (level 1 + 2 + 3).
+export type ActivityDay = DayActivityRow & {
+  users: ActivityUserDay[];
+};
+
+// One shared device: the owner account plus the secondary account(s) whose
+// events on that shared device are hidden from the Activity view.
+export type SharedDeviceAccount = {
+  user_id: string;
+  user_email: string | null;
+  user_name: string | null;
+  is_owner: boolean;
+};
+
+export type SharedDeviceRow = {
+  device_id: string;
+  accounts: SharedDeviceAccount[];
+};
+
+// The full preloaded payload for one paginated window.
+export type ActivityWindow = {
+  page: number; // 0 = most recent WINDOW_DAYS
+  windowDays: number; // WINDOW_DAYS (7)
+  start: string; // 'YYYY-MM-DD' (UTC) — oldest day in the window
+  end: string; // 'YYYY-MM-DD' (UTC) — newest day in the window (most recent)
+  days: ActivityDay[]; // descending by day
+  hasOlder: boolean; // true when older windows still have events
+  sharedDevices: SharedDeviceRow[]; // accounts omitted by per-device dedup
+  truncated: boolean; // true if the events query hit its defensive LIMIT
 };
 
 export type AdminAuditLogRow = {

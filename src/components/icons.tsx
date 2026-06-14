@@ -75,6 +75,12 @@ export const IconShield = (p: IconProps) => (
   </svg>
 );
 
+export const IconActivity = (p: IconProps) => (
+  <svg {...base(p)}>
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+  </svg>
+);
+
 export const IconTrash = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M3 6h18" />
@@ -136,5 +142,14 @@ export const IconExternal = (p: IconProps) => (
 export const IconHeart = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  </svg>
+);
+
+// Circular-arrow refresh (two opposing curved arrows).
+export const IconRefresh = (p: IconProps) => (
+  <svg {...base(p)}>
+    <polyline points="23 4 23 10 17 10" />
+    <polyline points="1 20 1 14 7 14" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
   </svg>
 );

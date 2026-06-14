@@ -13,6 +13,7 @@ import {
   IconPaw,
   IconList,
   IconShield,
+  IconActivity,
 } from "./icons";
 
 type NavItem = {
@@ -28,6 +29,7 @@ const NAV: NavItem[] = [
   { href: "/reports", label: "Reportes", Icon: IconFlag },
   { href: "/chats", label: "Chats", Icon: IconChat },
   { href: "/dogs", label: "Perros", Icon: IconPaw },
+  { href: "/activity", label: "Actividad", Icon: IconActivity },
   { href: "/logs", label: "Logs", Icon: IconList },
 ];
 

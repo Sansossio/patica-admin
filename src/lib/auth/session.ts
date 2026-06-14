@@ -7,7 +7,7 @@ import type { AdminRole } from "../types";
 export const SESSION_COOKIE = "patica_admin_session";
 const ALG = "HS256";
 const ISSUER = "patica-admin";
-export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days (1 month)
 
 export type AdminSession = {
   email: string;

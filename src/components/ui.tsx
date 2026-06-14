@@ -176,9 +176,19 @@ export function Th({ children, className }: { children?: ReactNode; className?: 
   return <th className={cn("px-4 py-3 font-medium", className)}>{children}</th>;
 }
 
-export function Tr({ children, className }: { children: ReactNode; className?: string }) {
+export function Tr({
+  children,
+  className,
+  onClick,
+}: {
+  children: ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) {
   return (
-    <tr className={cn("border-b border-border/60 last:border-0", className)}>{children}</tr>
+    <tr onClick={onClick} className={cn("border-b border-border/60 last:border-0", className)}>
+      {children}
+    </tr>
   );
 }
 

@@ -8,6 +8,24 @@ const dateTimeFmt = new Intl.DateTimeFormat("es-ES", {
   minute: "2-digit",
 });
 const dateFmt = new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+// A bare 'YYYY-MM-DD' UTC day rendered with weekday; forced to UTC so the label
+// matches the day bucket (which is UTC) regardless of the server's local tz.
+const dayFmt = new Intl.DateTimeFormat("es-ES", {
+  weekday: "long",
+  day: "2-digit",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+// Time-of-day rendered in **UTC** so the displayed HH:MM:SS matches the UTC day
+// bucket (substr(created_at, 1, 10)) regardless of the runtime tz.
+const timeFmt = new Intl.DateTimeFormat("es-ES", {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+  timeZone: "UTC",
+});
 
 export function formatNumber(n: number | null | undefined): string {
   return numberFmt.format(n ?? 0);
@@ -30,6 +48,22 @@ export function formatDate(iso: string | null | undefined): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return dateFmt.format(d);
+}
+
+/** Format a bare 'YYYY-MM-DD' UTC day as a weekday-prefixed Spanish date. */
+export function formatDay(day: string | null | undefined): string {
+  if (!day) return "—";
+  const d = new Date(`${day}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return day ?? "—";
+  return dayFmt.format(d);
+}
+
+/** Time-of-day "HH:MM:SS" from an ISO-8601 timestamp, rendered in UTC. */
+export function formatTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return timeFmt.format(d);
 }
 
 /** Compact relative time in Spanish: "hace 3 h", "hace 2 d", "ahora". */
