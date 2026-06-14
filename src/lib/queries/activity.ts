@@ -148,6 +148,7 @@ type WindowEventRow = {
   event: string;
   platform: string | null;
   app_version: string | null;
+  device_id: string | null;
   metadata: string;
   created_at: string;
 };
@@ -234,6 +235,7 @@ export async function loadActivityWindow(page: number): Promise<ActivityWindow> 
            e.event AS event,
            e.platform AS platform,
            e.app_version AS app_version,
+           e.device_id AS device_id,
            e.metadata AS metadata,
            e.created_at AS created_at
          FROM user_events e
@@ -278,6 +280,7 @@ export async function loadActivityWindow(page: number): Promise<ActivityWindow> 
         event: row.event,
         platform: row.platform,
         app_version: row.app_version,
+        device_id: row.device_id,
         metadata: row.metadata,
         created_at: row.created_at,
       });

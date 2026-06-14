@@ -155,7 +155,7 @@ function DayModal({
       open={open}
       onClose={onClose}
       title={title}
-      maxWidth="max-w-4xl"
+      maxWidth="max-w-6xl"
       zIndex="z-50"
       // Same shared RefreshButton as the page header (router.refresh() in a
       // transition); the App Router keeps this modal open while fresh props flow
@@ -201,15 +201,15 @@ function DayModal({
                 <Td className="text-center font-medium text-primary">
                   {formatNumber(u.total_activities)}
                 </Td>
-                <Td className="max-w-md">
+                <Td>
                   <div className="flex flex-wrap gap-1.5">
-                    {u.byType.slice(0, 6).map((t) => (
+                    {u.byType.slice(0, 10).map((t) => (
                       <Badge key={t.event} tone="info">
                         {userEventLabel(t.event)} · {formatNumber(t.count)}
                       </Badge>
                     ))}
-                    {u.byType.length > 6 && (
-                      <Badge tone="neutral">+{u.byType.length - 6}</Badge>
+                    {u.byType.length > 10 && (
+                      <Badge tone="neutral">+{u.byType.length - 10}</Badge>
                     )}
                   </div>
                 </Td>
@@ -243,7 +243,7 @@ function UserModal({
       open={open}
       onClose={onClose}
       title={title}
-      maxWidth="max-w-3xl"
+      maxWidth="max-w-6xl"
       zIndex="z-[60]"
       headerExtra={
         user ? (
@@ -269,31 +269,46 @@ function UserModal({
           title="Sin actividad este día"
         />
       ) : (
-        <Card className="divide-y divide-border/60">
-          {events.map((e) => {
-            const preview = metaPreview(e.metadata);
-            return (
-              <div key={e.id} className="flex items-start gap-3 px-5 py-3 text-sm">
-                <span className="w-20 shrink-0 font-mono text-xs text-subtle">
-                  {formatTime(e.created_at)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="info">{userEventLabel(e.event)}</Badge>
-                    {e.platform && (
-                      <span className="text-xs text-subtle">
-                        {e.platform}
-                        {e.app_version ? ` · v${e.app_version}` : ""}
-                      </span>
-                    )}
-                  </div>
-                  {preview && (
-                    <p className="mt-1 break-words text-xs text-muted">{preview}</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <Card>
+          <Table>
+            <THead>
+              <Tr>
+                <Th className="w-20">Hora</Th>
+                <Th>Evento</Th>
+                <Th>Plataforma</Th>
+                <Th>Versión</Th>
+                <Th>Device ID</Th>
+                <Th>Metadata</Th>
+              </Tr>
+            </THead>
+            <tbody>
+              {events.map((e) => {
+                const preview = metaPreview(e.metadata);
+                return (
+                  <Tr key={e.id}>
+                    <Td className="whitespace-nowrap font-mono text-xs text-subtle">
+                      {formatTime(e.created_at)}
+                    </Td>
+                    <Td>
+                      <Badge tone="info">{userEventLabel(e.event)}</Badge>
+                    </Td>
+                    <Td className="text-subtle">{e.platform ?? "—"}</Td>
+                    <Td className="whitespace-nowrap text-subtle">
+                      {e.app_version ? `v${e.app_version}` : "—"}
+                    </Td>
+                    <Td className="font-mono text-xs text-subtle">
+                      {e.device_id ? (
+                        <span title={e.device_id}>{e.device_id.slice(0, 8)}</span>
+                      ) : (
+                        "—"
+                      )}
+                    </Td>
+                    <Td className="break-words text-xs text-muted">{preview || "—"}</Td>
+                  </Tr>
+                );
+              })}
+            </tbody>
+          </Table>
         </Card>
       )}
     </Modal>

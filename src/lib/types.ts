@@ -172,6 +172,9 @@ export type ActivityTimelineEvent = {
   event: string;
   platform: string | null;
   app_version: string | null;
+  // Device that produced the event (X-Device-Id header); NULL for legacy /
+  // some chat events. Surfaced in the timeline column for anti-fraud review.
+  device_id: string | null;
   metadata: string;
   created_at: string; // ISO-8601 (UTC)
 };
