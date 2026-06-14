@@ -175,6 +175,10 @@ export type ActivityTimelineEvent = {
   // Device that produced the event (X-Device-Id header); NULL for legacy /
   // some chat events. Surfaced in the timeline column for anti-fraud review.
   device_id: string | null;
+  // Request origin captured server-side (NULL for legacy events): client IP and
+  // 2-letter ISO country code. Surfaced in the timeline for anti-fraud review.
+  ip: string | null;
+  country: string | null;
   metadata: string;
   created_at: string; // ISO-8601 (UTC)
 };

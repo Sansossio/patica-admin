@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { loadActivityWindow } from "@/lib/queries/activity";
 import { ActivityExplorer } from "@/components/ActivityExplorer";
@@ -56,7 +57,18 @@ export default async function ActivityPage({
         </p>
       )}
 
-      <ActivityExplorer window={win} />
+      {/* Suspense boundary: ActivityExplorer reads useSearchParams (modal state
+          lives in the URL). Matches the sibling panel pages and keeps the build
+          safe even if force-dynamic is ever removed. */}
+      <Suspense
+        fallback={
+          <Card>
+            <div className="p-6 text-sm text-muted">Cargando actividad…</div>
+          </Card>
+        }
+      >
+        <ActivityExplorer window={win} />
+      </Suspense>
 
       <SharedDevicesCard window={win} />
     </>

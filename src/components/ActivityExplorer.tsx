@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Modal } from "./Modal";
 import { RefreshButton } from "./RefreshButton";
@@ -16,7 +15,8 @@ import {
 } from "./ui";
 import { IconActivity, IconChevronRight } from "./icons";
 import { formatDay, formatNumber, formatTime } from "@/lib/format";
-import { userEventLabel } from "@/lib/labels";
+import { countryFlagEmoji, userEventLabel } from "@/lib/labels";
+import { useActivityModalUrl } from "@/hooks/useActivityModalUrl";
 import type {
   ActivityDay,
   ActivityTimelineEvent,
@@ -47,13 +47,21 @@ function metaPreview(metadata: string): string {
  * router.refresh() in the day modal re-runs the server page and flows fresh
  * props down WHILE the modals stay open (App Router preserves this client
  * state), so the numbers update in place.
+ *
+ * Modal open state lives in the URL (`?day=...&user=...`) via
+ * useActivityModalUrl, so browser Back / swipe-back closes the topmost modal.
+ * The state is resolved against the PRELOADED window props (find day in
+ * win.days, user in that day.users); a param pointing at a day/user absent from
+ * the current window is ignored (stale deep-link), so no empty modal opens.
  */
 export function ActivityExplorer({ window: win }: { window: ActivityWindow }) {
-  const [openDay, setOpenDay] = useState<string | null>(null);
-  const [openUser, setOpenUser] = useState<string | null>(null);
+  const { openDay, openUser, openDayModal, openUserModal, closeTop } =
+    useActivityModalUrl();
 
-  // Resolve the currently-open day/user from the latest props. After a refresh
-  // the objects are new, so we always look them up by id rather than caching.
+  // Resolve the currently-open day/user from the preloaded props. Looking them
+  // up by id (rather than caching) keeps the modals correct after a refresh and
+  // makes deep-link params self-validating: an unknown id resolves to undefined,
+  // which gates the modal closed instead of rendering a stale/empty shell.
   const day: ActivityDay | undefined = openDay
     ? win.days.find((d) => d.day === openDay)
     : undefined;
@@ -84,10 +92,7 @@ export function ActivityExplorer({ window: win }: { window: ActivityWindow }) {
                 <Tr
                   key={d.day}
                   className="cursor-pointer hover:bg-surface-2"
-                  onClick={() => {
-                    setOpenDay(d.day);
-                    setOpenUser(null);
-                  }}
+                  onClick={() => openDayModal(d.day)}
                 >
                   <Td>
                     <div className="flex items-center gap-2 font-medium">
@@ -114,12 +119,8 @@ export function ActivityExplorer({ window: win }: { window: ActivityWindow }) {
       {/* Level 2 — users active on the selected day. */}
       <DayModal
         day={day}
-        openDayId={openDay}
-        onClose={() => {
-          setOpenDay(null);
-          setOpenUser(null);
-        }}
-        onOpenUser={(userId) => setOpenUser(userId)}
+        onClose={closeTop}
+        onOpenUser={(userId) => day && openUserModal(day.day, userId)}
       />
 
       {/* Level 3 — the selected user's event timeline (stacked above level 2). */}
@@ -127,7 +128,7 @@ export function ActivityExplorer({ window: win }: { window: ActivityWindow }) {
         day={day}
         user={user}
         open={Boolean(user)}
-        onClose={() => setOpenUser(null)}
+        onClose={closeTop}
       />
     </>
   );
@@ -135,20 +136,18 @@ export function ActivityExplorer({ window: win }: { window: ActivityWindow }) {
 
 function DayModal({
   day,
-  openDayId,
   onClose,
   onOpenUser,
 }: {
   day: ActivityDay | undefined;
-  openDayId: string | null;
   onClose: () => void;
   onOpenUser: (userId: string) => void;
 }) {
-  // Keep the modal open even if the day momentarily resolves to undefined
-  // mid-refresh: gate on the selected id, fall back to an empty users list.
-  const open = Boolean(openDayId);
+  // Open only when the URL day resolved to a real day in the preloaded window;
+  // a stale/unknown ?day= param leaves `day` undefined and keeps the modal shut.
+  const open = Boolean(day);
   const users = day?.users ?? [];
-  const title = openDayId ? formatDay(openDayId) : "";
+  const title = day ? formatDay(day.day) : "";
 
   return (
     <Modal
@@ -164,7 +163,7 @@ function DayModal({
     >
       <p className="mb-4 -mt-2 text-sm text-muted">
         {formatNumber(users.length)} usuario{users.length === 1 ? "" : "s"} activo
-        {users.length === 1 ? "" : "s"} · {openDayId}
+        {users.length === 1 ? "" : "s"} · {day?.day}
       </p>
 
       {users.length === 0 ? (
@@ -277,6 +276,8 @@ function UserModal({
                 <Th>Evento</Th>
                 <Th>Plataforma</Th>
                 <Th>Versión</Th>
+                <Th>País</Th>
+                <Th>IP</Th>
                 <Th>Device ID</Th>
                 <Th>Metadata</Th>
               </Tr>
@@ -295,6 +296,18 @@ function UserModal({
                     <Td className="text-subtle">{e.platform ?? "—"}</Td>
                     <Td className="whitespace-nowrap text-subtle">
                       {e.app_version ? `v${e.app_version}` : "—"}
+                    </Td>
+                    <Td className="whitespace-nowrap text-subtle">
+                      {e.country ? (
+                        <span title={e.country}>
+                          {countryFlagEmoji(e.country)} {e.country.toUpperCase()}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </Td>
+                    <Td className="whitespace-nowrap font-mono text-xs text-subtle">
+                      {e.ip ?? "—"}
                     </Td>
                     <Td className="font-mono text-xs text-subtle">
                       {e.device_id ? (

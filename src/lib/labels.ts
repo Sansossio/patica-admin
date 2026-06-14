@@ -161,3 +161,18 @@ export function userEventLabel(event: string): string {
   const spaced = event.replace(/_/g, " ").trim();
   return spaced ? spaced.charAt(0).toUpperCase() + spaced.slice(1) : event;
 }
+
+/**
+ * Turn a 2-letter ISO-3166 country code (e.g. "VE") into its flag emoji by
+ * mapping each ASCII letter to its regional-indicator symbol. Returns the
+ * uppercased raw code if it isn't exactly two A–Z letters.
+ */
+export function countryFlagEmoji(code: string): string {
+  const cc = code.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(cc)) return cc;
+  const A = 0x1f1e6; // regional indicator 'A'
+  return String.fromCodePoint(
+    A + (cc.charCodeAt(0) - 65),
+    A + (cc.charCodeAt(1) - 65),
+  );
+}
