@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { loadActivityWindow } from "@/lib/queries/activity";
 import { ActivityExplorer } from "@/components/ActivityExplorer";
+import { RefreshButton } from "@/components/RefreshButton";
 import { PageHeader, Card, Badge } from "@/components/ui";
 import { formatDay } from "@/lib/format";
 import type { ActivityWindow } from "@/lib/types";
@@ -25,7 +26,10 @@ export default async function ActivityPage({
         title="Actividad"
         // Server-side log only (platform="server"): fires for ALL builds, so the
         // numbers are build-independent and not double-counted by the app client.
-        subtitle="Actividad registrada en el servidor · por día (UTC)"
+        subtitle="Actividad registrada en el servidor · por día (hora Caracas)"
+        // RefreshButton is a client component; rendering it inside the
+        // (server-rendered) PageHeader actions is fine — it ships its own island.
+        actions={<RefreshButton />}
       />
 
       {/* Window range + weekly pagination. */}

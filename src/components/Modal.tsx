@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useId, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { IconRefresh } from "./icons";
 
 /**
  * Module-level stack of open modal ids, ordered by mount. The last entry is the
@@ -42,14 +41,23 @@ export function Modal({
 }) {
   const id = useId();
 
-  // Register/unregister this modal in the stack while it is open, and close on
-  // Escape only when this modal is the topmost entry.
+  // Keep the latest onClose in a ref so the stack-registration effect does NOT
+  // depend on it. Callers pass inline arrows (a fresh function every render), and
+  // refresh-driven re-renders are now common, so including onClose in the deps
+  // would churn the effect — re-pushing/re-splicing the stack on every parent
+  // render and risking the topmost-modal ESC target getting out of sync.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  // Register/unregister this modal in the stack for its whole open lifetime, and
+  // close on Escape only when this modal is the topmost entry. Deps are just
+  // [open, id]: stable for as long as the modal stays open.
   useEffect(() => {
     if (!open) return;
     modalStack.push(id);
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (modalStack[modalStack.length - 1] === id) onClose();
+      if (modalStack[modalStack.length - 1] === id) onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     return () => {
@@ -57,7 +65,7 @@ export function Modal({
       const idx = modalStack.lastIndexOf(id);
       if (idx !== -1) modalStack.splice(idx, 1);
     };
-  }, [open, id, onClose]);
+  }, [open, id]);
 
   if (!open) return null;
 
@@ -91,30 +99,5 @@ export function Modal({
         </div>
       </div>
     </div>
-  );
-}
-
-/**
- * Header refresh control for a modal. Wraps `onRefresh` in the caller's pending
- * state: shows a spinning icon and disables while pending.
- */
-export function ModalRefreshButton({
-  onRefresh,
-  pending,
-}: {
-  onRefresh: () => void;
-  pending: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onRefresh}
-      disabled={pending}
-      aria-label="Actualizar"
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-(--radius-button) border border-border px-2.5 py-1 text-xs font-medium text-muted transition hover:border-primary/60 hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <IconRefresh className={cn("h-4 w-4", pending && "animate-spin")} />
-      Actualizar
-    </button>
   );
 }

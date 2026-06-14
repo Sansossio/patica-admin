@@ -8,8 +8,16 @@ const dateTimeFmt = new Intl.DateTimeFormat("es-ES", {
   minute: "2-digit",
 });
 const dateFmt = new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short", year: "numeric" });
-// A bare 'YYYY-MM-DD' UTC day rendered with weekday; forced to UTC so the label
-// matches the day bucket (which is UTC) regardless of the server's local tz.
+// ── Timezone asymmetry between formatDay and formatTime (READ THIS) ───────────
+// Activity is now segmented by Caracas-local day (UTC-4) in SQL via DAY_EXPR
+// (substr(datetime(created_at, '-4 hours'), 1, 10)). That has two consequences
+// that pull formatDay and formatTime in OPPOSITE directions:
+//
+// • formatDay receives a bare 'YYYY-MM-DD' STRING that is ALREADY shifted to
+//   Caracas by DAY_EXPR. It is a plain calendar date, not an instant, so it must
+//   be rendered in UTC. Using timeZone: "America/Caracas" here would subtract
+//   another 4 hours from the already-shifted midnight and roll the label back to
+//   the PREVIOUS day (double-shift). So this stays UTC on purpose.
 const dayFmt = new Intl.DateTimeFormat("es-ES", {
   weekday: "long",
   day: "2-digit",
@@ -17,14 +25,15 @@ const dayFmt = new Intl.DateTimeFormat("es-ES", {
   year: "numeric",
   timeZone: "UTC",
 });
-// Time-of-day rendered in **UTC** so the displayed HH:MM:SS matches the UTC day
-// bucket (substr(created_at, 1, 10)) regardless of the runtime tz.
+// • formatTime receives the RAW UTC created_at instant (an absolute timestamp).
+//   To show the Caracas wall-clock HH:MM:SS that matches the Caracas day bucket,
+//   it must be rendered in America/Caracas (Intl does the -4h shift correctly).
 const timeFmt = new Intl.DateTimeFormat("es-ES", {
   hour: "2-digit",
   minute: "2-digit",
   second: "2-digit",
   hour12: false,
-  timeZone: "UTC",
+  timeZone: "America/Caracas",
 });
 
 export function formatNumber(n: number | null | undefined): string {
@@ -50,7 +59,11 @@ export function formatDate(iso: string | null | undefined): string {
   return dateFmt.format(d);
 }
 
-/** Format a bare 'YYYY-MM-DD' UTC day as a weekday-prefixed Spanish date. */
+/**
+ * Format a bare 'YYYY-MM-DD' day (ALREADY Caracas-shifted by DAY_EXPR) as a
+ * weekday-prefixed Spanish date. Rendered in UTC on purpose — see the timeZone
+ * asymmetry note above: the string is a plain calendar date, not an instant.
+ */
 export function formatDay(day: string | null | undefined): string {
   if (!day) return "—";
   const d = new Date(`${day}T00:00:00Z`);
@@ -58,7 +71,11 @@ export function formatDay(day: string | null | undefined): string {
   return dayFmt.format(d);
 }
 
-/** Time-of-day "HH:MM:SS" from an ISO-8601 timestamp, rendered in UTC. */
+/**
+ * Time-of-day "HH:MM:SS" from a raw UTC ISO-8601 timestamp, rendered as Caracas
+ * wall-clock (UTC-4) so it matches the Caracas day bucket — see the asymmetry
+ * note above.
+ */
 export function formatTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
-import { Modal, ModalRefreshButton } from "./Modal";
+import { Modal } from "./Modal";
+import { RefreshButton } from "./RefreshButton";
 import {
   Card,
   Table,
@@ -144,9 +144,6 @@ function DayModal({
   onClose: () => void;
   onOpenUser: (userId: string) => void;
 }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
   // Keep the modal open even if the day momentarily resolves to undefined
   // mid-refresh: gate on the selected id, fall back to an empty users list.
   const open = Boolean(openDayId);
@@ -160,12 +157,10 @@ function DayModal({
       title={title}
       maxWidth="max-w-4xl"
       zIndex="z-50"
-      headerExtra={
-        <ModalRefreshButton
-          pending={isPending}
-          onRefresh={() => startTransition(() => router.refresh())}
-        />
-      }
+      // Same shared RefreshButton as the page header (router.refresh() in a
+      // transition); the App Router keeps this modal open while fresh props flow
+      // down, so the numbers update in place.
+      headerExtra={<RefreshButton />}
     >
       <p className="mb-4 -mt-2 text-sm text-muted">
         {formatNumber(users.length)} usuario{users.length === 1 ? "" : "s"} activo

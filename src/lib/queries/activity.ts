@@ -10,19 +10,27 @@ import type {
   UserEventTypeCount,
 } from "../types";
 
-// ── Day-derivation expression (single source of truth) ───────────────────────
-// Activity is bucketed by **UTC** calendar day using substr(created_at, 1, 10)
-// over the ISO-8601 'YYYY-MM-DDT...Z' timestamps. This intentionally matches the
-// api/ daily-metrics cron (services/daily-metrics.ts), which uses the exact same
-// expression + COUNT(DISTINCT user_id), so the "active users" numbers reconcile
-// with the precomputed daily_metrics table.
-//
-// To switch to local time (America/Caracas, UTC-4) later, change this to:
-//   substr(datetime(created_at, '-4 hours'), 1, 10)
-// and update the cron in api/ in the same way to keep them aligned.
-const DAY_EXPR = "substr(created_at, 1, 10)";
+// ── Caracas timezone offset (single source of truth) ─────────────────────────
+// Venezuela is fixed at UTC-4 (America/Caracas) with NO daylight saving, so a
+// constant SQLite datetime modifier is exact year-round. Day segmentation is
+// done in Caracas-local time, not UTC: a row's calendar day is whatever day it
+// was in Caracas when it happened.
+const CARACAS_MODIFIER = "-4 hours";
 
-// One paginated window is WINDOW_DAYS UTC calendar days wide.
+// ── Day-derivation expression (single source of truth) ───────────────────────
+// Activity is bucketed by **Caracas-local** calendar day using
+// substr(datetime(created_at, '-4 hours'), 1, 10) over the ISO-8601
+// 'YYYY-MM-DDT...Z' timestamps: datetime() shifts the stored UTC instant back 4
+// hours, then substr() takes the leading 'YYYY-MM-DD'. The resulting day STRING
+// is already in Caracas wall-clock terms (consumers must NOT shift it again).
+//
+// NOTE: this no longer matches the api/ daily-metrics cron (which still buckets
+// by UTC). The Activity "active users" numbers are therefore expected to differ
+// slightly from daily_metrics at the day boundary; that is intentional. If the
+// cron is later switched to Caracas time, keep it aligned with CARACAS_MODIFIER.
+const DAY_EXPR = `substr(datetime(created_at, '${CARACAS_MODIFIER}'), 1, 10)`;
+
+// One paginated window is WINDOW_DAYS Caracas-local calendar days wide.
 export const WINDOW_DAYS = 7;
 
 // Defensive cap on the raw events pulled for a whole window (used to build the
@@ -70,12 +78,27 @@ const DEDUP_PREDICATE = `e.platform = 'server'
     OR e.user_id = (SELECT o.user_id FROM device_owner o WHERE o.device_id = e.device_id)
   )`;
 
-/** UTC "today" as a bare 'YYYY-MM-DD' string. */
-function utcToday(): string {
-  return new Date().toISOString().slice(0, 10);
+// Caracas offset in milliseconds (UTC-4, fixed). Used only to derive the current
+// Caracas calendar day from the absolute "now" instant.
+const CARACAS_OFFSET_MS = 4 * 60 * 60 * 1000;
+
+/**
+ * Caracas-local "today" as a bare 'YYYY-MM-DD' string. We subtract the fixed -4h
+ * offset from the current instant and read the UTC date of the shifted instant,
+ * which equals the Caracas wall-clock date. This mirrors the SQL DAY_EXPR
+ * (datetime(created_at, '-4 hours')) so the JS window boundaries and the SQL
+ * day buckets agree on what "today" is.
+ */
+function caracasToday(): string {
+  return new Date(Date.now() - CARACAS_OFFSET_MS).toISOString().slice(0, 10);
 }
 
-/** Shift a bare 'YYYY-MM-DD' UTC day by `days` (negative = earlier). */
+/**
+ * Shift a bare 'YYYY-MM-DD' day by `days` (negative = earlier). This is pure
+ * calendar arithmetic on the date string and is timezone-independent — adding N
+ * days to 'YYYY-MM-DD' gives the same result whether the day is read as UTC or
+ * Caracas — so it is reused unchanged for the Caracas-local boundaries.
+ */
 function shiftDay(day: string, days: number): string {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -83,12 +106,13 @@ function shiftDay(day: string, days: number): string {
 }
 
 /**
- * Compute the [start, end] inclusive UTC day boundaries for a window page.
- * page 0 = the most recent WINDOW_DAYS days (today + the 6 prior UTC days);
- * page N = the WINDOW_DAYS days immediately before window N-1.
+ * Compute the [start, end] inclusive Caracas-local day boundaries for a window
+ * page. page 0 = the most recent WINDOW_DAYS days (Caracas "today" + the 6 prior
+ * Caracas days); page N = the WINDOW_DAYS days immediately before window N-1.
+ * The bounds are matched against DAY_EXPR (also Caracas-local) in SQL.
  */
 function windowBounds(page: number): { start: string; end: string } {
-  const today = utcToday();
+  const today = caracasToday();
   const end = shiftDay(today, -page * WINDOW_DAYS);
   const start = shiftDay(end, -(WINDOW_DAYS - 1));
   return { start, end };
@@ -131,7 +155,7 @@ type WindowEventRow = {
 /**
  * Load one paginated activity window with EVERYTHING the three drilldown levels
  * need, preloaded, so the client modals open instantly:
- *   - level 1: one row per UTC day (active users + total activities),
+ *   - level 1: one row per Caracas-local day (active users + total activities),
  *   - level 2: the active users per day with byType breakdown + first/last,
  *   - level 3: each (day, user) chronological event timeline.
  *
@@ -153,7 +177,7 @@ export async function loadActivityWindow(page: number): Promise<ActivityWindow> 
   };
 
   try {
-    // The window filter: bucket day BETWEEN start AND end (inclusive, UTC).
+    // The window filter: bucket day BETWEEN start AND end (inclusive, Caracas).
     const dayFilter = `${DAY_EXPR.replace(/created_at/g, "e.created_at")} BETWEEN ? AND ?`;
 
     const [dayAgg, userDayAgg, breakdown, events, older] = await Promise.all([
